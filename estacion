@@ -1,0 +1,88 @@
+#include <SoftwareSerial.h>
+const int RecordTime = 3; //Define Measuring Time (Seconds)
+
+const int anemoPin2 =  2;// the number of the LED pin
+const int pluviPin7 =  7;// the number of the LED pin
+int conta1=0, conta2=0;
+int Reg_anemo=0;
+int Reg_pluvi=0;
+int sensorValue = 0; 
+int sensorPin = A1;
+float sensorValue1=0;
+
+String dirViento;
+
+int InterruptCounter;
+float WindSpeed;
+
+void setup() {
+Serial.begin(9600);
+  pinMode(anemoPin2, INPUT);//blujula
+  pinMode(pluviPin7, INPUT);//plumiometro
+  
+}
+
+void loop() 
+{
+  veleta();
+  meassure();
+  Serial.print("      ");
+  delay(100);
+}
+
+void veleta(){
+  sensorValue = analogRead(sensorPin);
+  sensorValue1 =(sensorValue*5)/102.3 ;
+  sensorValue1 =sensorValue1/10;
+  
+  if(sensorValue1>3.83 && sensorValue1<3.87 )
+  Serial.println("Norte 0° ");
+  if(sensorValue1>1.96 && sensorValue1<2.00 )
+  Serial.println("NorEste 22.6° ");
+  if(sensorValue1>2.24 && sensorValue1<2.28 )
+  Serial.println("NorEste 45°");
+  if(sensorValue1>0.38 && sensorValue1<0.42 )
+  Serial.println("NorEste 67.5°");
+  if(sensorValue1>0.42 && sensorValue1<0.46 )
+  Serial.println("Este 90°");
+  if(sensorValue1>0.29 && sensorValue1<0.33 )
+  Serial.println("SurEste 112.5°");
+  if(sensorValue1>0.88 && sensorValue1<0.92 )
+  Serial.println("SurEste 135°");
+  if(sensorValue1>0.59 && sensorValue1<0.63 )
+  Serial.println("SurEste 157.5°");
+  if(sensorValue1>1.38 && sensorValue1<1.42 )
+  Serial.println("Sur 180°");
+  if(sensorValue1>1.17 && sensorValue1<1.21 )
+  Serial.println("SurOeste 202.5°");
+  if(sensorValue1>3.07 && sensorValue1<3.11 )
+  Serial.println("SurOeste 225°");
+  if(sensorValue1>2.92 && sensorValue1<2.96 )
+  Serial.println("SurOeste 247.5°");
+  if(sensorValue1>4.60 && sensorValue1<4.64 )
+  Serial.println("Oeste 270°");
+  if(sensorValue1>4.03 && sensorValue1<4.07 )
+  Serial.println("NorOeste 292.5°");
+  if(sensorValue1>4.32 && sensorValue1<4.36 )
+  Serial.println("NorOeste 315°");
+  if(sensorValue1>3.43 && sensorValue1<3.47 )
+  Serial.println("NorOeste 337.5°");
+}
+
+void meassure() {
+  InterruptCounter = 0;
+  attachInterrupt(digitalPinToInterrupt(anemoPin2), countup, RISING);
+  delay(1000 * RecordTime);
+  detachInterrupt(digitalPinToInterrupt(anemoPin2));
+  WindSpeed = (float)InterruptCounter / (float)RecordTime * 2.4;
+
+  Serial.print("Wind Speed: ");
+  Serial.print(WindSpeed);       //Speed in km/h
+  Serial.print(" km/h - ");
+  Serial.print(WindSpeed / 3.6); //Speed in m/s
+  Serial.print(" m/s");
+}
+
+void countup() {
+  InterruptCounter++;
+}
