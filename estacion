@@ -1,33 +1,110 @@
-#include <SoftwareSerial.h>
+#include <DHT.h>
+
+#include "DHT.h"
+
+#define DHT_A 2
+#define DHTTYPE DHT22
+
+#include<LiquidCrystal_I2C.h>//Libreria
+
+LiquidCrystal_I2C lcd(0x27, 20, 4); //Direccion hexadecimal,tamaño x, tamaño y
+
+
+#define L_POR_BALANCEO 0.2794; 
 const int RecordTime = 3; //Define Measuring Time (Seconds)
 
 const int anemoPin2 =  2;// the number of the LED pin
-const int pluviPin7 =  7;// the number of the LED pin
-int conta1=0, conta2=0;
+const int pluviPin3 =  3;// the number of the LED pin
+
+int countup=0, conta2=0;
 int Reg_anemo=0;
-int Reg_pluvi=0;
+volatile int contadorPluvi = 0;
 int sensorValue = 0; 
 int sensorPin = A1;
+float lluvia=0;
 float sensorValue1=0;
+
+float h;
+float t;
+float hic;
+
+const int A2pin = 2;
+DHT dht(A2, DHTTYPE);
 
 String dirViento;
 
-int InterruptCounter;
+volatile int InterruptCounter=0;
+
+int InterruptCounterPluviometro=0;
 float WindSpeed;
 
 void setup() {
-Serial.begin(9600);
+  Serial.begin(9600);
   pinMode(anemoPin2, INPUT);//blujula
-  pinMode(pluviPin7, INPUT);//plumiometro
-  
+  pinMode(pluviPin3, INPUT);//plumiometro
+
+  lcd.init();//inicializa la pantalla
+  lcd.backlight();//Enciende la luz de fondo
+
+  lcd.setCursor(4, 1); //posicion 5 en x en la primer linea
+  lcd.print("Bienvenidos");//
+
+  lcd.setCursor(4,2);//posiciona el cursor x,y
+  lcd.print("Grupo GISTFA");//Imprime el msj
+
+  pinMode(A2pin, INPUT);
+
+  dht.begin();
 }
 
-void loop() 
-{
+void displayDatos(float velocidad,String direccion, float humedad,float temperatura,int cantidadLLuvia){
+   String velViento,humSensor,temperaturaSensor,pluviometro;
+
+   lcd.init();
+   
+   velViento.concat(velocidad);
+   lcd.setCursor(0, 0); //posicion 5 en x en la primer linea
+   lcd.print("V:"+ velViento+" Km/H");//
+
+   lcd.setCursor(0, 1); //posicion 5 en x en la primer linea
+   lcd.print("Dv:"+ direccion+((char)223));
+   // 
+   lcd.setCursor(0, 2); //posicion 5 en x en la primer linea
+   humSensor.concat(humedad);
+   lcd.print("H:"+humSensor+((char)293));//
+
+   lcd.setCursor(9, 2); //posicion 5 en x en la primer linea
+   temperaturaSensor.concat(temperatura);
+   lcd.print("T:"+temperaturaSensor+((char)223)+"C");//
+
+   lcd.setCursor(0, 3); //posicion 5 en x en la primer linea
+   pluviometro.concat(lluvia);
+   lcd.print("PP: "+ pluviometro+"mm");
+ }
+
+void loop(){
   veleta();
-  meassure();
+  anemometro();
+  pluviometro();  
+  sensorHumedad();
+  Serial.println("pluviometro:");
+  Serial.println(lluvia);
   Serial.print("      ");
-  delay(100);
+  displayDatos(WindSpeed,dirViento,h,t,lluvia);
+}
+
+void sensorHumedad(){
+  h = dht.readHumidity();
+  t = dht.readTemperature();
+  if (isnan(h) || isnan(t)) {
+   Serial.println(F("Failed to read from DHT sensor!"));
+    return;
+  }
+  hic = dht.computeHeatIndex(t, h, false);
+  Serial.println("Humidity: ");
+  Serial.println(h);
+  Serial.println("Temperature");
+  Serial.println(hic);
 }
 
 void veleta(){
@@ -36,53 +113,72 @@ void veleta(){
   sensorValue1 =sensorValue1/10;
   
   if(sensorValue1>3.83 && sensorValue1<3.87 )
-  Serial.println("Norte 0° ");
+  dirViento="Norte 0 ";
+  
   if(sensorValue1>1.96 && sensorValue1<2.00 )
-  Serial.println("NorEste 22.6° ");
+  dirViento="NE 22.6";
   if(sensorValue1>2.24 && sensorValue1<2.28 )
-  Serial.println("NorEste 45°");
+  dirViento="NE 45";
   if(sensorValue1>0.38 && sensorValue1<0.42 )
-  Serial.println("NorEste 67.5°");
+  dirViento="NE 67.5";
   if(sensorValue1>0.42 && sensorValue1<0.46 )
-  Serial.println("Este 90°");
+  dirViento="E 90";
   if(sensorValue1>0.29 && sensorValue1<0.33 )
-  Serial.println("SurEste 112.5°");
+  dirViento="SE 112.5";
   if(sensorValue1>0.88 && sensorValue1<0.92 )
-  Serial.println("SurEste 135°");
+  dirViento="SE 135";
   if(sensorValue1>0.59 && sensorValue1<0.63 )
-  Serial.println("SurEste 157.5°");
+  dirViento="SE 157.5";
   if(sensorValue1>1.38 && sensorValue1<1.42 )
-  Serial.println("Sur 180°");
+  dirViento="S 180";
   if(sensorValue1>1.17 && sensorValue1<1.21 )
-  Serial.println("SurOeste 202.5°");
+  dirViento="SO 202.5";
   if(sensorValue1>3.07 && sensorValue1<3.11 )
-  Serial.println("SurOeste 225°");
+  dirViento="SO 225";
   if(sensorValue1>2.92 && sensorValue1<2.96 )
-  Serial.println("SurOeste 247.5°");
+  dirViento="SO 247.5";
   if(sensorValue1>4.60 && sensorValue1<4.64 )
-  Serial.println("Oeste 270°");
+  dirViento="O 270";
   if(sensorValue1>4.03 && sensorValue1<4.07 )
-  Serial.println("NorOeste 292.5°");
+  dirViento="NO 292.5";
   if(sensorValue1>4.32 && sensorValue1<4.36 )
-  Serial.println("NorOeste 315°");
+  dirViento="NO 315";
   if(sensorValue1>3.43 && sensorValue1<3.47 )
-  Serial.println("NorOeste 337.5°");
+  dirViento="NO 337.5";
+  Serial.println(dirViento);
 }
 
-void meassure() {
+void anemometro() {
   InterruptCounter = 0;
-  attachInterrupt(digitalPinToInterrupt(anemoPin2), countup, RISING);
+  attachInterrupt(digitalPinToInterrupt(2), contadoranemometro, RISING);
   delay(1000 * RecordTime);
-  detachInterrupt(digitalPinToInterrupt(anemoPin2));
+  detachInterrupt(digitalPinToInterrupt(2));
   WindSpeed = (float)InterruptCounter / (float)RecordTime * 2.4;
 
-  Serial.print("Wind Speed: ");
-  Serial.print(WindSpeed);       //Speed in km/h
-  Serial.print(" km/h - ");
-  Serial.print(WindSpeed / 3.6); //Speed in m/s
-  Serial.print(" m/s");
+  Serial.println("Wind Speed: ");
+  Serial.println(WindSpeed);       //Speed in km/h
+  Serial.println(" km/h - ");
+  Serial.println(WindSpeed / 3.6); //Speed in m/s
+  Serial.println(" m/s");
+
 }
 
-void countup() {
+void contadoranemometro(){
   InterruptCounter++;
+}
+
+void balanceoPluviometro() { 
+  //attachInterrupt(digitalPinToInterrupt(3), balanceoPluviometro, RISING);
+  contadorPluvi++;  
+}
+
+void  tomaDatos (){
+  lluvia+=contadorPluvi*L_POR_BALANCEO;  
+  contadorPluvi=0;  
+}
+
+void pluviometro(){
+  attachInterrupt(digitalPinToInterrupt(3), balanceoPluviometro, RISING);
+  detachInterrupt(digitalPinToInterrupt(3));
+  tomaDatos();  
 }
